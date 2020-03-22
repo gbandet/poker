@@ -1,33 +1,144 @@
 import React from 'react';
+import { withRouter } from "react-router-dom";
 
 
-export default class Home extends React.Component {
+class Room extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {message: ""};
-    window.comp = this;
+    this.state = {
+      inRoom: false,
+      isJoining: false,
+      joinError: '',
+      name: sessionStorage.getItem('name'),
+      players: [],
+    };
   };
 
   componentDidMount() {
-    this.ws = new WebSocket("ws://localhost:8090");
-    this.ws.onmessage = (event) => {
-      console.log('Received: ', event.data);
-      console.log(this);
-      this.setState({message: event.data});
-    };
+    this.initSocket();
   }
 
-  click() {
-    console.log('Send message');
-    this.ws.send('TEST');
+  joinRoom() {
+    sessionStorage.setItem('name', this.state.name);
+    this.sendMessage('join', {
+      room: this.props.match.params.id,
+      name: sessionStorage.getItem('name'),
+    });
+    this.setState({
+      isJoining: true,
+      joinError: '',
+    });
+  }
+
+  initSocket() {
+    this.ws = new WebSocket("ws://localhost:8090");
+    this.ws.onmessage = event => this.handleMessage(event.data);
+    this.ws.onopen = event => {
+      this.sendMessage('register', sessionStorage.getItem('id'));
+    }
+  }
+
+  handleMessage(message) {
+    try {
+      message = JSON.parse(message);
+    } catch(error) {
+      console.error('Cannot decode JSON from message.');
+    }
+    console.log('Receive', message.type, message.payload);
+    switch (message.type) {
+      case 'registered':
+        this.handleRegistered(message.payload);
+        break;
+      case 'status':
+        this.handleStatus(message.payload);
+        break;
+      case 'roomFull':
+        this.setState({
+          isJoining: false,
+          joinError: 'Room is full',
+        })
+        break;
+      case 'error':
+        this.handleError(message.payload);
+        break;
+      default:
+        console.error('Unknown message type: ', message);
+    }
+  }
+
+  handleRegistered(payload) {
+    sessionStorage.setItem('id', payload);
+  }
+
+  handleStatus(payload) {
+    this.setState({
+      inRoom: true,
+      players: payload,
+    });
+  }
+
+  handleError(error) {
+    console.error(error);
+  }
+
+  sendMessage(type, payload) {
+    const message = {
+      type: type,
+      payload: payload,
+    };
+    console.log("Send", type, payload);
+    this.ws.send(JSON.stringify(message));
   }
 
   render() {
+    let content;
+    if (!this.state.inRoom) {
+      content = this.renderJoinForm();
+    } else {
+      content = this.renderRoom();
+    }
     return (
-      <div> 
-        <button onClick={() => this.click()}>SEND</button>
-        <span>{this.state.message}</span>
+      <div className="Room">
+        {content}
+      </div>
+    );
+  }
+
+  renderJoinForm() {
+    return (
+      <div>
+        <section className="hero is-light">
+          <div className="hero-body">
+            {this.state.joinError &&
+              <h1 className="subtitle has-text-danger">Error: {this.state.joinError}</h1>
+            }
+            <div className="field">
+              <label className="label">Name</label>
+              <div className="control">
+                <input className="input" placeholder="Name" value={this.state.name}
+                    onChange={(event) => this.setState({name: event.target.value})}/>
+              </div>
+            </div>
+            {!this.state.isJoining &&
+              <button className="button is-link" disabled={this.state.name === ""} onClick={() => this.joinRoom()}>Join</button>
+            }
+            {this.state.isJoining &&
+              <button className="button is-link" disabled={true}>Joining</button>
+            }
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  renderRoom() {
+    return (
+      <div>
+        <label>Players: </label>
+        <span>{this.state.players.join()}</span>
       </div>
     );
   }
 }
+
+export default withRouter(Room);

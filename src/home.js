@@ -1,5 +1,6 @@
 import React from 'react';
 import { withRouter } from "react-router-dom";
+import './home.css';
 
 
 class Home extends React.Component {
@@ -17,16 +18,24 @@ class Home extends React.Component {
     this.props.history.push(`/room/${this.state.roomId}`);
   }
 
-  updateRoomId(event) {
-    this.setState({roomId: event.target.value});
-  }
-
   render() {
     return (
-      <div>
-        <button onClick={() => this.createRoom()}>Create room</button>
-        <input value={this.state.roomId} onChange={(event) => this.updateRoomId(event)}/>
-        <button onClick={() => this.joinRoom()}>Join room</button>
+      <div className="Home">
+        <section className="hero is-light">
+          <div className="hero-body">
+            <ul>
+              <li>
+                <span className="subtitle">Create a new room</span>
+                <button className="button is-link is-small" onClick={() => this.createRoom()}>Create</button>
+              </li>
+              <li>
+                <span className="subtitle">Join room #</span>
+                <input className="input is-small" value={this.state.roomId} onChange={(event) => this.setState({roomId: event.target.value})} />
+                <button className="button is-link is-small" disabled={this.state.roomId === ""} onClick={() => this.joinRoom()}>Join</button>
+              </li>
+            </ul>
+          </div>
+        </section>
       </div>
     );
   }
