@@ -10,7 +10,8 @@ class Room extends React.Component {
       isJoining: false,
       joinError: '',
       name: sessionStorage.getItem('name'),
-      players: [],
+      status: [],
+      bet: 0,
     };
   };
 
@@ -33,7 +34,7 @@ class Room extends React.Component {
   initSocket() {
     this.ws = new WebSocket("ws://localhost:8090");
     this.ws.onmessage = event => this.handleMessage(event.data);
-    this.ws.onopen = event => {
+    this.ws.onopen = () => {
       this.sendMessage('register', sessionStorage.getItem('id'));
     }
   }
@@ -73,12 +74,24 @@ class Room extends React.Component {
   handleStatus(payload) {
     this.setState({
       inRoom: true,
-      players: payload,
+      status: payload,
     });
   }
 
   handleError(error) {
     console.error(error);
+  }
+
+  startGame() {
+    this.sendMessage('start');
+  }
+
+  fold() {
+    this.sendMessage('fold');
+  }
+
+  bet() {
+    this.sendMessage('bet', parseInt(this.state.bet));
   }
 
   sendMessage(type, payload) {
@@ -134,8 +147,18 @@ class Room extends React.Component {
   renderRoom() {
     return (
       <div>
-        <label>Players: </label>
-        <span>{this.state.players.join()}</span>
+        <label>Status: </label>
+        <pre>{JSON.stringify(this.state.status, null, 2)}</pre>
+        <button className="button" onClick={() => this.startGame()}>Start</button>
+        <div className="field">
+          <label className="label">Bet</label>
+          <div className="control">
+            <input className="input" placeholder="10" value={this.state.nambet}
+                onChange={(event) => this.setState({bet: event.target.value})}/>
+          </div>
+        </div>
+        <button className="button" onClick={() => this.bet()}>Bet</button>
+        <button className="button" onClick={() => this.fold()}>Fold</button>
       </div>
     );
   }

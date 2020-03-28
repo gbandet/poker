@@ -1,35 +1,20 @@
-const MAX_PLAYERS = 10;
+import { Game } from "./game";
 
 export class Room {
   constructor(id) {
     this.id = id;
-    this.players = [];
+    this.game = new Game();
+  }
+
+  handleMessage(player, type, paylaod) {
+    this.game.handleMessage(player, type, paylaod);
   }
 
   addPlayer(player) {
-    if (this.players.length >= MAX_PLAYERS) {
-      return false;
-    }
-    this.players.push(player);
-    this.broadcast('status', this.getStatus());
-    return true;
+    return this.game.addPlayer(player);
   }
 
-  removePlayer(player) {
-    let index = this.players.indexOf(player);
-    if (index >= 0) {
-      this.players.splice(index, 1);
-    }
-    this.broadcast('status', this.getStatus());
-  }
-
-  broadcast(type, payload) {
-    this.players.forEach(player => {
-      player.sendMessage(type, payload);
-    });
-  }
-
-  getStatus() {
-    return this.players.map(player => player.name);
+  reconnect(player) {
+    this.game.reconnect(player);
   }
 }

@@ -1,3 +1,6 @@
+import { ClientError } from "./error";
+
+
 export class Player {
   constructor(id, client, server) {
     this.id = id;
@@ -13,7 +16,19 @@ export class Player {
         this.handleJoin(payload);
         break;
       default:
-        this.sendError(`Unknown message type: "${type}".`);
+        if (this.room) {
+          try {
+            this.room.handleMessage(this, type, payload);
+          } catch (error) {
+            if (error instanceof ClientError) {
+              this.client.sendError(error.message);
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          this.client.sendError(`Unknown message type: "${type}".`);
+        }
     }
   }
 
@@ -30,7 +45,7 @@ export class Player {
       if (this.room.id !== payload.room) {
         this.client.sendError('Already in a room.');
       } else {
-        this.sendMessage('status', this.room.getStatus());
+        this.room.reconnect(this);
       }
       return;
     }
